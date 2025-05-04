@@ -15,9 +15,10 @@ lib = load(
 
 
 if __name__ == "__main__":
-    # Create a tensor on the GPU
     N = 1024
-    a = torch.zeros(N, dtype=torch.int32,device='cuda')
-    lib.launch_Idtest_kernel(a)
-    
-    print(a)
+    a = torch.ones(N, dtype=torch.float32,device="cuda")
+    b = torch.ones(N, dtype=torch.float32,device="cuda")
+    c = torch.zeros(N, dtype=torch.float32,device="cuda")
+    seq = torch.zeros(N, dtype=torch.int32,device="cuda")
+    lib.launch_elementwise_f32x4_kernel(a, b, c, seq)
+    print(c)
