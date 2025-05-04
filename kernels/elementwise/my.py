@@ -19,6 +19,5 @@ if __name__ == "__main__":
     a = torch.ones(N, dtype=torch.float32,device="cuda")
     b = torch.ones(N, dtype=torch.float32,device="cuda")
     c = torch.zeros(N, dtype=torch.float32,device="cuda")
-    seq = torch.zeros(N, dtype=torch.int32,device="cuda")
-    lib.launch_elementwise_f32x4_kernel(a, b, c, seq)
+    lib.launch_elementwise_add_f32x4(a, b, c)
     print(c)
