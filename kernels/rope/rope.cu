@@ -56,8 +56,9 @@ __global__ void rope_f32_kernel(float *x, float *out, int seq_len, int N) {
 
 // another index method of rope.
 __global__ void rope_f32_v2_kernel(float *x, float *out, int seq_len, int N) {
-  int token_pos = blockIdx.x;
-  int tid = threadIdx.x;
+  int token_pos = blockIdx.x;   // 使用blockIdx.x直接作为token位置
+  int tid = threadIdx.x;        // 使用threadIdx.x作为token内分量的索引
+
   float x1 = x[token_pos * N * 2 + tid * 2];
   float x2 = x[token_pos * N * 2 + tid * 2 + 1];
   float exp_v = 1.0f / powf(theta, 2 * tid / (N * 2.0f));
@@ -69,23 +70,33 @@ __global__ void rope_f32_v2_kernel(float *x, float *out, int seq_len, int N) {
   out[token_pos * N * 2 + tid * 2 + 1] = out2;
 }
 
-__global__ void rope_f32x4_pack_kernel(float *x, float *out, int seq_len,
-                                       int N) {
+__global__ void rope_f32x4_pack_kernel(float *x, float *out, int seq_len, int N) {
   int idx = blockIdx.x * blockDim.x + threadIdx.x;
+  
+  // 一次性读取4个float（两个复数分量）
   float4 x_v = FLOAT4(x[idx * 4]);
+  
   int token_pos = idx / N;
   int token_idx = idx % N;
+  
+  // 计算两个复数分量对应的旋转频率因子
   float exp_f_v = 1.0f / powf(theta, 2 * token_idx * 2 / (N * 4.0f));
   float exp_s_v = 1.0f / powf(theta, 2 * (token_idx * 2 + 1) / (N * 4.0f));
+  
+  // 计算两个旋转角度
   float sin_f_v = sinf(token_pos * exp_f_v);
   float cos_f_v = cosf(token_pos * exp_f_v);
   float sin_s_v = sinf(token_pos * exp_s_v);
   float cos_s_v = cosf(token_pos * exp_s_v);
+  
+  // 分别旋转两个复数分量
   float4 out_v;
-  out_v.x = x_v.x * cos_f_v - x_v.y * sin_f_v;
+  out_v.x = x_v.x * cos_f_v - x_v.y * sin_f_v;  // 第一个复数分量
   out_v.y = x_v.x * sin_f_v + x_v.y * cos_f_v;
-  out_v.z = x_v.z * cos_s_v - x_v.w * sin_s_v;
+  out_v.z = x_v.z * cos_s_v - x_v.w * sin_s_v;  // 第二个复数分量
   out_v.w = x_v.z * sin_s_v + x_v.w * cos_s_v;
+  
+  // 一次性写回4个float
   FLOAT4(out[idx * 4]) = out_v;
 }
 
