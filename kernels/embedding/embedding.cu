@@ -53,6 +53,26 @@ __global__ void embedding_f16_kernel(const int *idx, half *weight, half *output,
   output[bx * emb_size + tx] = weight[offset + tx];
 }
 
+__global__ void emb_kernel_cu_fp32(int32_t vocab_size, int32_t token_num, int32_t weight_dim,
+                                   const int32_t* input_ptr, const float* weight_ptr,
+                                   float* output_ptr) {
+  int32_t token_idx = blockIdx.x;
+  if (token_idx >= token_num) {
+    return;
+  }
+  int32_t token = input_ptr[token_idx];
+  if (token >= vocab_size) {
+    return;
+  }
+
+  float* output_ptr_start = output_ptr + token_idx * weight_dim;
+  const float* weight_ptr_start = weight_ptr + token * weight_dim;
+
+  for (int32_t i = threadIdx.x; i < weight_dim; i += blockDim.x) {
+    output_ptr_start[i] = weight_ptr_start[i];
+  }
+}
+
 __global__ void embedding_f16x8_kernel(const int *idx, half *weight,
                                        half *output, int n, int emb_size) {
   int tx = threadIdx.x * 8;
